@@ -1,4 +1,7 @@
+const mongoose = require('mongoose')
 var memosModel = require('../models/memosModel.js');
+const seedMemos = require('../seeders/memosSeed');
+var format = require('date-format');
 
 /**
  * memosController.js
@@ -6,6 +9,35 @@ var memosModel = require('../models/memosModel.js');
  * @description :: Server-side logic for managing memoss.
  */
 module.exports = {
+  seed: function(req, res) {
+    mongoose.connection.db.dropCollection('memos', function(err, result) {
+      if (err) {
+        return res.status(500).json({
+          message: 'Error when drop collection memos',
+          error: err
+        });
+      }
+      console.log('Dropped collection: memos')
+    })
+    memosModel.create(seedMemos, function(err, memos){
+      if (err) {
+        return res.status(500).json({
+          message: 'Error when seeding memos',
+          error: err
+        });
+      }
+      return res.status(201).json(memos);
+    })
+  },
+
+  seedKey: function (req, res, next) {
+    if(req.header('auth') === 'admin123') {
+      next()
+    } else {
+      res.send('You dont have access!')
+    }
+  },
+
   list: function (req, res) {
     memosModel.find(function (err, memoss) {
       if (err) {
@@ -37,7 +69,7 @@ module.exports = {
   },
 
   create: function (req, res) {
-    var memos = new memosModel({  		title : req.body.title,  		memo : req.body.memo,  		created_at : req.body.created_at,  		updated_at : req.body.updated_at
+    var memos = new memosModel({  		title : req.body.title,  		memo : req.body.memo,  		created_at : format('dd/MM/yy, hh:mm', new Date()),  		updated_at : format('dd/MM/yy, hh:mm', new Date())
     });
 
     memos.save(function (err, memos) {
@@ -67,7 +99,7 @@ module.exports = {
         });
       }
 
-      memos.title = req.body.title ? req.body.title : memos.title;      memos.memo = req.body.memo ? req.body.memo : memos.memo;      memos.created_at = req.body.created_at ? req.body.created_at : memos.created_at;      memos.updated_at = req.body.updated_at ? req.body.updated_at : memos.updated_at;
+      memos.title = req.body.title ? req.body.title : memos.title;      memos.memo = req.body.memo ? req.body.memo : memos.memo;      memos.updated_at = format('dd/MM/yy, hh:mm', new Date()) ? format('dd/MM/yy, hh:mm', new Date()) : memos.updated_at;
       memos.save(function (err, memos) {
         if (err) {
           return res.status(500).json({
@@ -89,7 +121,8 @@ module.exports = {
           error: err
         });
       }
-      return res.status(204).json();
+      // return res.status(204).json(memos);
+      return res.status(201).json(memos);
     });
   }
 };
